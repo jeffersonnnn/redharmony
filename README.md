@@ -6,7 +6,7 @@ RedHarmony is an innovative social media orchestration system that creates engag
 
 - **Multi-Personality System**: Create and manage multiple AI personas, each with distinct traits, backgrounds, and communication patterns
 - **Natural Interaction Flow**: Generates contextually appropriate posts and comments that maintain conversation coherence
-- **Intelligent Response Generation**: Uses GPT-4 to create human-like, engaging content
+- **Flexible LLM Integration**: Supports both OpenAI and DeepSeek with seamless provider switching
 - **Subreddit Targeting**: Deploy personas across chosen subreddits or create dedicated discussion spaces
 - **Smart Rate Limiting**: Complies with Reddit's API guidelines through intelligent timing controls
 - **Conversation Threading**: Maintains coherent discussion threads between different personas
@@ -17,8 +17,24 @@ RedHarmony is an innovative social media orchestration system that creates engag
 
 - Python 3.8 or higher
 - Reddit account with API access
-- OpenAI API key (GPT-4 access required)
+- OpenAI API key (GPT-4 access) or DeepSeek API key
 - SQLite (included with Python)
+
+## LLM Provider Configuration
+
+RedHarmony supports two AI providers:
+
+### OpenAI (Default)
+- Uses GPT-4 for state-of-the-art language understanding
+- Requires OpenAI API key with GPT-4 access
+- Set `OPENAI_API_KEY` in your `.env` file
+
+### DeepSeek (Alternative)
+- Cost-effective alternative with similar performance
+- Requires DeepSeek API key
+- Set `DEEPSEEK_API_KEY` and `USE_DEEPSEEK=True` in your `.env` file
+
+You can easily switch between providers by updating your environment variables.
 
 ## Installation
 
@@ -46,7 +62,16 @@ cp .env.example .env
 ```
 Then edit `.env` with your API credentials:
 ```env
+# Choose your AI provider
+USE_DEEPSEEK="False"  # Set to "True" to use DeepSeek instead of OpenAI
+
+# OpenAI Configuration (Default)
 OPENAI_API_KEY="your_openai_api_key"
+
+# DeepSeek Configuration (Optional)
+DEEPSEEK_API_KEY="your_deepseek_api_key"
+
+# Reddit Configuration
 REDDIT_USERNAME="your_username"
 REDDIT_PASSWORD="your_password"
 REDDIT_CLIENT_ID="your_client_id"
