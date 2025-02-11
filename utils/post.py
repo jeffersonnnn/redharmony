@@ -33,9 +33,9 @@ Remember:
 """
         content = get_openai_response(enhanced_prompt)
         
-        # Add personality signature
-        signature = f"\n\n---\n*Posted by {personality['name']} - {personality['bio'][0]}*"
-        return content + signature
+        # Add personality signature at the top
+        signature = f"*Thoughts from **{personality['name']}** - {personality['bio'][0]}*\n\n"
+        return signature + content
     except Exception as e:
         logger.error(f"Error generating post content: {str(e)}", exc_info=True)
         return None
@@ -144,8 +144,8 @@ Remember to:
 
                     comment_content = get_openai_response(comment_prompt)
                     if comment_content:
-                        # Add personality signature
-                        comment_content += f"\n\n---\n*Response from {contrasting_personality['name']} - {contrasting_personality['bio'][0]}*"
+                        # Add personality signature at the top
+                        comment_content = f"*Response from **{contrasting_personality['name']}** - {contrasting_personality['bio'][0]}*\n\n{comment_content}"
                         submission.reply(comment_content)
                         logger.info(f"Added comment from {contrasting_personality['name']}")
                 except Exception as e:
