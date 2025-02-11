@@ -1,29 +1,52 @@
 # RedHarmony
 
-RedHarmony is an innovative social media orchestration system that creates engaging, multi-personality discussions and interactions on Reddit. It uses artificial intelligence to simulate natural conversations between distinct personas, each with their own expertise, viewpoints, and communication styles in the cryptocurrency and DeFi space.
+RedHarmony is an innovative social media orchestration system that creates engaging, multi-personality discussions and interactions on Reddit. It simulates natural conversations between distinct Key Opinion Leaders (KOLs) in the cryptocurrency, DeFi, and technology space, each with their own expertise, viewpoints, and communication styles.
 
 ## Current Personalities
 
-The system currently features three distinct personalities:
+The system features five distinct KOL personalities:
 
-1. **fxnction** - A seasoned crypto trader and DeFi expert focusing on market psychology and technical analysis
-2. **defi_skeptic** - An experienced traditional finance professional who brings critical analysis to DeFi claims
-3. **crypto_researcher** - An academic researcher focused on blockchain economics and empirical analysis
+1. **shawmakesmagic** - OS development and systems architecture
+   - Creator of ElizaOS
+   - Systems programmer focused on Rust and modern OS design
+   - Advocate for rethinking traditional OS patterns
+
+2. **fxnction** - DeFi and trading expertise
+   - Seasoned crypto trader and DeFi expert
+   - Technical analyst focused on market psychology
+   - Community educator on complex DeFi concepts
+
+3. **infinity_gainz** - Market analysis and technical trading
+   - Crypto KOL focused on high-conviction trades
+   - On-chain data specialist
+   - DeFi protocol reviewer and power user
+
+4. **defi_skeptic** - Traditional finance perspective
+   - Experienced traditional finance professional
+   - Risk analyst focused on protocol vulnerabilities
+   - Critical analyst of DeFi claims and systems
+
+5. **crypto_researcher** - Academic analysis
+   - Blockchain economics researcher
+   - Data-driven protocol analyst
+   - Specialist in tokenomics and governance systems
 
 ## Core Features
 
-- **Personality-Driven Interactions**: Each personality maintains its unique voice, expertise, and perspective throughout discussions
-- **Natural Conversation Flow**: Generates contextual, flowing discussions without mechanical numbering or rigid structures
-- **Signature System**: Clear attribution of posts and comments to specific personalities with their roles
-- **Dynamic Flair Management**: Automatically selects appropriate post flairs based on content and subreddit
-- **Intelligent Rate Limiting**: Respects Reddit's API guidelines while maintaining natural posting patterns
-- **Contextual Responses**: Each personality engages thoughtfully with posts and comments, maintaining conversation coherence
+- **KOL-Driven Interactions**: Each personality maintains their unique voice, expertise, and perspective
+- **Natural Conversation Flow**: Generates contextual, flowing discussions without mechanical structures
+- **Clear Attribution**: Each post and comment clearly identifies the speaking personality
+- **Dynamic Flair Management**: Automatically selects appropriate post flairs based on content
+- **Intelligent Rate Limiting**: Maintains natural posting patterns while respecting Reddit's guidelines
+- **Multi-Perspective Discussions**: Creates rich interactions between different viewpoints
 
 ## Configuration
 
 ### Personality Files
 Located in `/personalities/` directory:
+- `shawmakesmagic.json`
 - `fxnction.json`
+- `infinity_gainz.json`
 - `defi_skeptic.json`
 - `crypto_researcher.json`
 
@@ -71,9 +94,6 @@ pip install -r requirements.txt
 
 4. Configure your `.env` file with API credentials:
 ```env
-# AI Provider Configuration
-USE_DEEPSEEK="False"  # Set to "True" to use DeepSeek instead of OpenAI
-
 # OpenAI Configuration
 OPENAI_API_KEY="your_openai_api_key"
 
@@ -93,11 +113,11 @@ python main.py
 ```
 
 The system will:
-- Load configured personalities
+- Load all five KOL personalities
 - Connect to target subreddits
 - Generate natural posts and comments
 - Maintain conversation threads
-- Log all activities
+- Create multi-perspective discussions
 
 ## Current Rate Limits
 
@@ -111,7 +131,7 @@ Default settings in `config.json`:
 ## Interaction Flow
 
 1. **Post Creation**:
-   - Random personality selection
+   - Random KOL selection
    - Natural title generation
    - Content creation with personality signature
    - Automatic flair selection
@@ -120,13 +140,13 @@ Default settings in `config.json`:
    - Contextual response generation
    - Personality-appropriate insights
    - Natural conversation flow
-   - Clear attribution
+   - Clear KOL attribution
 
-3. **Reply Chains**:
-   - Organic discussion development
-   - Contrasting viewpoint integration
-   - Maintained personality consistency
-   - Natural conversation progression
+3. **Discussion Dynamics**:
+   - Technical discussions between system experts
+   - Market analysis debates
+   - Critical perspective integration
+   - Academic insights and research views
 
 ## Best Practices
 
@@ -139,11 +159,12 @@ Default settings in `config.json`:
 ## Development Status
 
 Current focus areas:
-- [x] Multi-personality system implementation
+- [x] Multi-KOL system implementation
 - [x] Natural conversation flow
 - [x] Personality-specific content generation
 - [x] Dynamic flair management
 - [x] Rate limiting and timing controls
+- [x] Clear personality attribution
 - [ ] Advanced conversation branching
 - [ ] Personality memory system
 - [ ] Analytics dashboard
