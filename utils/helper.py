@@ -3,7 +3,9 @@ import json
 import praw
 import sqlite3
 import os
+import time
 from dotenv import load_dotenv
+from openai import OpenAI
 
 from datetime import datetime, timedelta
 from typing import List, Dict
@@ -27,26 +29,57 @@ def load_accounts(filepath="accounts.json") -> List[Dict[str, str]]:
         logger.error("Error decoding JSON from accounts file.")
         return []
     
-def get_reddit_client(account):
+def get_reddit_instance():
+    """Get authenticated Reddit instance"""
     try:
         reddit = praw.Reddit(
             username=os.getenv("REDDIT_USERNAME"),
             password=os.getenv("REDDIT_PASSWORD"),
             client_id=os.getenv("REDDIT_CLIENT_ID"),
             client_secret=os.getenv("REDDIT_CLIENT_SECRET"),
-            user_agent=os.getenv("REDDIT_USER_AGENT"),
+            user_agent=os.getenv("REDDIT_USER_AGENT")
         )
+        # Test the connection
+        username = reddit.user.me().name
+        logger.info(f"Successfully authenticated as {username}")
         return reddit
-    except praw.exceptions.PRAWException as e:
-        logger.error(f"Failed authentication for Reddit API: {e}")
+    except Exception as e:
+        logger.error(f"Error authenticating with Reddit: {str(e)}", exc_info=True)
         return None
+
+def get_openai_response(prompt: str) -> str:
+    """Get response from OpenAI with retry logic"""
+    max_retries = 3
+    retry_delay = 5
     
-def subreddit_valid(reddit, subreddit):
+    for attempt in range(max_retries):
+        try:
+            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            response = client.chat.completions.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are a Reddit user creating engaging content. Keep responses concise and natural."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=500,
+                temperature=0.8
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            logger.error(f"OpenAI API error (attempt {attempt + 1}/{max_retries}): {str(e)}", exc_info=True)
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+            else:
+                raise
+
+def is_valid_subreddit(reddit: praw.Reddit, subreddit_name: str) -> bool:
+    """Check if subreddit exists and is accessible"""
     try:
-        subreddit = reddit.subreddit(subreddit)
-        subreddit.id 
+        subreddit = reddit.subreddit(subreddit_name)
+        _ = subreddit.id  # This will fail if subreddit doesn't exist
         return True
     except Exception as e:
+        logger.error(f"Error checking subreddit {subreddit_name}: {str(e)}", exc_info=True)
         return False
 
 def get_random_post():
@@ -118,3 +151,25 @@ def get_flairs(reddit, subreddit_name):
     except Exception as e:
         print(f"Error fetching flairs for subreddit '{subreddit_name}': {e}")
         return []
+
+def handle_rate_limit(func):
+    """Decorator to handle Reddit API rate limits"""
+    def wrapper(*args, **kwargs):
+        max_retries = 3
+        retry_delay = 60  # Start with 1 minute delay
+        
+        for attempt in range(max_retries):
+            try:
+                return func(*args, **kwargs)
+            except praw.exceptions.RedditAPIException as e:
+                if "RATELIMIT" in str(e):
+                    wait_time = retry_delay * (attempt + 1)
+                    logger.warning(f"Rate limited. Waiting {wait_time} seconds before retry...")
+                    time.sleep(wait_time)
+                else:
+                    raise
+            except Exception as e:
+                logger.error(f"Error in {func.__name__}: {str(e)}", exc_info=True)
+                raise
+        return None
+    return wrapper

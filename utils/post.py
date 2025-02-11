@@ -1,66 +1,165 @@
+import os
+import json
 import random
 import logging
-import time
-import os
+from datetime import datetime
+import praw
 from dotenv import load_dotenv
+from utils.helper import get_reddit_instance, get_openai_response, handle_rate_limit, get_flairs
+from utils.personality_manager import PersonalityManager
 
-from utils.helper import load_accounts, get_reddit_client, subreddit_valid, save_post, get_flairs
-from utils.constant import generate_post_content, generate_post_title
-from utils.vote import vote_post
-
-load_dotenv()
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-with open("accounts.json") as f:
-    accounts = load_accounts()
+personality_manager = PersonalityManager()
+
+def generate_post_content(personality):
+    """Generate post content based on personality"""
+    try:
+        # Enhanced prompt to encourage more natural, flowing content
+        base_prompt = personality_manager.get_personality_prompt(personality)
+        enhanced_prompt = f"""
+{base_prompt}
+
+You are engaging in a thoughtful discussion about crypto and DeFi. Write a natural, insightful post that reflects your unique perspective and expertise. 
+Focus on one clear topic or idea, and develop it with depth and nuance. Write as you would speak - naturally and engagingly.
+Avoid listing points or numbered sections. Instead, present your thoughts in a flowing, conversational manner while maintaining your professional expertise.
+
+Remember:
+- You are {personality['name']}, {personality['bio'][0]}
+- Draw from your specific knowledge in: {', '.join(personality['knowledge'])}
+- Maintain your characteristic style: {', '.join(personality['style']['post'])}
+- Write as if you're sharing valuable insights with peers in your field
+"""
+        content = get_openai_response(enhanced_prompt)
+        
+        # Add personality signature
+        signature = f"\n\n---\n*Posted by {personality['name']} - {personality['bio'][0]}*"
+        return content + signature
+    except Exception as e:
+        logger.error(f"Error generating post content: {str(e)}", exc_info=True)
+        return None
+
+@handle_rate_limit
+def submit_post(subreddit, title, content, flair_id=None):
+    """Submit post with rate limit handling"""
+    return subreddit.submit(
+        title=title,
+        selftext=content,
+        flair_id=flair_id
+    )
+
+def get_appropriate_flair(reddit, subreddit_name):
+    """Get an appropriate flair for the subreddit"""
+    flairs = get_flairs(reddit, subreddit_name)
+    if not flairs:
+        return None
+        
+    # Priority flairs to use (in order of preference)
+    preferred_flairs = ['discussion', 'general', 'strategy', 'analysis', 'opinion']
+    
+    # Try to find a preferred flair
+    for preferred in preferred_flairs:
+        for flair in flairs:
+            if preferred.lower() in flair['flair_text'].lower():
+                logger.info(f"Using flair: {flair['flair_text']}")
+                return flair['flair_id']
+    
+    # If no preferred flair found, use the first available one
+    logger.info(f"Using default flair: {flairs[0]['flair_text']}")
+    return flairs[0]['flair_id']
+
+def generate_title(content, personality):
+    """Generate a natural title without [Discussion] prefix"""
+    try:
+        prompt = f"""As {personality['name']}, create a brief, engaging title for this post. 
+The title should naturally reflect your expertise as {personality['bio'][0]}.
+Make it conversational and intriguing, avoiding mechanical formats.
+
+The post content is:
+{content}"""
+        title = get_openai_response(prompt)
+        return title[:300]  # Reddit title length limit
+    except Exception as e:
+        logger.error(f"Error generating title: {str(e)}", exc_info=True)
+        return content[:100] + "..."
 
 def generate_posts():
-    account = random.choice(accounts)
-    username = os.getenv("REDDIT_USERNAME")
-    logger.info(f"Select Account : {username}")
-    
-    reddit = get_reddit_client(account)
-    
-    if not reddit:
-        logger.error(f"Skipping account {username} due to failed authentication.")
-        return
-    
-    subreddit = random.choice(account["subreddits"])
-
-    logger.info(f"Logged in as: Username:{reddit.user.me()}, Subreddit:{subreddit}")
-
-    if not subreddit_valid(reddit, subreddit):
-        logger.error(f"Skipping post: Subreddit '{subreddit}' is invalid or inaccessible.")
-        return
-
-    post_content = generate_post_content(account["prompt"], subreddit) 
-    post_title = generate_post_title(post_content)
-
+    """Generate and submit posts using different personalities"""
     try:
-        create_post(reddit, username, subreddit, post_title, post_content)
+        reddit = get_reddit_instance()
+        if not reddit:
+            logger.error("Failed to get Reddit instance")
+            return None
+            
+        personality = personality_manager.get_random_personality()
         
-    except Exception as e:
-        logger.error(f"Error creating post: {e}")
-
-def create_post(reddit, username, subreddit_name, title, content):
-    try:
+        # Log which personality is posting
+        logger.info(f"Selected Personality: {personality['name']}")
+        
+        # Randomly select a subreddit from the personality's list
+        subreddit_name = random.choice(personality['settings']['subreddits'])
         subreddit = reddit.subreddit(subreddit_name)
         
-        # Get available flairs
-        flairs = get_flairs(reddit, subreddit_name)
+        logger.info(f"Posting in: r/{subreddit_name}")
         
-        # If flairs exist, select the first one (most subreddits put Discussion/General first)
-        flair_id = None
-        if flairs:
-            flair_id = flairs[0]["flair_id"]
-            logger.info(f"Using flair: {flairs[0]['flair_text']}")
-     
-        # Submit post with flair if available
-        post = subreddit.submit(title=title, selftext=content, flair_id=flair_id)
-        save_post(post.id, username, subreddit_name, title)
-        vote_post(post)
-        time.sleep(random.randint(100, 200))
+        # Generate and submit post
+        post_content = generate_post_content(personality)
+        if not post_content:
+            logger.error("Failed to generate post content")
+            return None
 
+        try:
+            # Generate a natural title
+            title = generate_title(post_content, personality)
+            
+            # Get appropriate flair for the subreddit
+            flair_id = get_appropriate_flair(reddit, subreddit_name)
+            
+            # Submit post with flair if available
+            submission = submit_post(subreddit, title, post_content, flair_id)
+            
+            if not submission:
+                logger.error("Failed to submit post (rate limited)")
+                return None
+                
+            logger.info(f"Post created by {personality['name']}: {submission.id}")
+            
+            # If we should create an interaction, generate a comment from another personality
+            if personality_manager.should_interact(personality['name']):
+                try:
+                    contrasting_personality = personality_manager.get_contrasting_personality(personality['name'])
+                    comment_prompt = f"""As {contrasting_personality['name']}, engage thoughtfully with this post from your unique perspective.
+You are {contrasting_personality['bio'][0]}, and you're having an intellectual discussion with a peer.
+Respond naturally and conversationally, while drawing from your expertise to add value to the discussion.
+
+The post you're responding to:
+{post_content}
+
+Remember to:
+- Engage directly with the key points
+- Share your unique insights
+- Maintain a natural, flowing conversation
+- Draw from your specific expertise in {', '.join(contrasting_personality['knowledge'][:3])}"""
+
+                    comment_content = get_openai_response(comment_prompt)
+                    if comment_content:
+                        # Add personality signature
+                        comment_content += f"\n\n---\n*Response from {contrasting_personality['name']} - {contrasting_personality['bio'][0]}*"
+                        submission.reply(comment_content)
+                        logger.info(f"Added comment from {contrasting_personality['name']}")
+                except Exception as e:
+                    logger.error(f"Error creating contrasting comment: {str(e)}", exc_info=True)
+            
+            return submission
+            
+        except praw.exceptions.RedditAPIException as e:
+            logger.error(f"Reddit API Error: {str(e)}", exc_info=True)
+            return None
+        except Exception as e:
+            logger.error(f"Error submitting post: {str(e)}", exc_info=True)
+            return None
+            
     except Exception as e:
-        logger.error(f"Error posting to subreddit: {e}")
+        logger.error(f"Error in generate_posts: {str(e)}", exc_info=True)
+        return None
