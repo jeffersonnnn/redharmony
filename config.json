@@ -1,7 +1,9 @@
 {
+    // List of subreddits where the bot will be active
     "target_subreddits": [
         "RedHarmonyAI"
     ],
+    // Rate limiting settings to comply with Reddit's API guidelines
     "rate_limits": {
         "posts_per_day": 10,
         "comments_per_day": 50,
@@ -10,6 +12,7 @@
         "min_delay_between_actions": 20,
         "max_delay_between_actions": 40
     },
+    // Settings that control how the bot interacts in conversations
     "interaction_settings": {
         "interaction_probability": 0.8,
         "max_conversation_depth": 4,
