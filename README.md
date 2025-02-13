@@ -82,7 +82,7 @@ cd redharmony
 
 2. Create and activate Python virtual environment:
 ```bash
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate  # Linux/MacOS
 venv\Scripts\activate     # Windows
 ```
@@ -191,3 +191,83 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - OpenAI GPT-4 API
 - Community contributors and testers
 - SQLite project
+
+## Deployment
+
+### Local Docker Deployment
+```bash
+# Build and run with Docker Compose
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop the service
+docker-compose down
+```
+
+### Digital Ocean Deployment
+
+1. Create a Digital Ocean account and generate an access token
+
+2. Set up GitHub Secrets:
+   - `DIGITALOCEAN_ACCESS_TOKEN`: Your DO access token
+   - `DIGITALOCEAN_REGISTRY`: Your DO registry name
+   - `DROPLET_HOST`: Your droplet's IP address
+   - `DROPLET_USERNAME`: Your droplet's SSH username
+   - `DROPLET_SSH_KEY`: Your SSH private key for the droplet
+
+3. Create a Digital Ocean droplet:
+   ```bash
+   # Create a new droplet with Docker pre-installed
+   doctl compute droplet create redharmony \
+     --image docker-20-04 \
+     --size s-1vcpu-1gb \
+     --region nyc1 \
+     --ssh-keys your-ssh-key-id
+   ```
+
+4. Initial server setup:
+   ```bash
+   # SSH into your droplet
+   ssh root@your-droplet-ip
+
+   # Create application directory
+   mkdir -p /opt/redharmony
+   cd /opt/redharmony
+
+   # Copy your .env file
+   nano .env  # Paste your environment variables
+   ```
+
+5. Push to GitHub:
+   - The GitHub Actions workflow will automatically:
+     - Build the Docker image
+     - Push to Digital Ocean Container Registry
+     - Deploy to your droplet
+     - Restart the service
+
+### Continuous Deployment
+
+The system is configured for continuous deployment:
+1. Push changes to main/master branch
+2. GitHub Actions automatically builds and deploys
+3. New version runs on Digital Ocean
+4. Database persists between deployments
+
+### Monitoring
+
+1. View logs:
+   ```bash
+   # SSH into droplet
+   ssh root@your-droplet-ip
+   
+   # View logs
+   cd /opt/redharmony
+   docker-compose logs -f
+   ```
+
+2. Check status:
+   ```bash
+   docker-compose ps
+   ```
