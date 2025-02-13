@@ -70,7 +70,7 @@ def main():
             logger.info(f"Waiting {sleep_time} seconds until next hour")
             time.sleep(sleep_time)
 
-    print("Daily task completed.")
+    print(f"Daily task completed at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 if __name__ == "__main__":
     main()
